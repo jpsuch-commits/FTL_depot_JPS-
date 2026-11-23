@@ -1,0 +1,38 @@
+{{ define "main" }}
+<link rel="stylesheet" href="{{ "lot3.css" | relURL }}?v={{ now.Unix }}">
+<nav class="ariane"><a href="{{ (site.GetPage "/accueil").RelPermalink }}">Accueil</a> › {{ .Title }}</nav>
+<article class="texte" data-pagefind-body><h1>{{ .Title }}</h1>
+{{ partial "typo.html" .Content }}
+</article>
+{{- $C := site.Data.lieux_coord -}}{{- $AN := dict "40" "0" "41" "1" "42" "2" "43" "3" "44" "4" "a" "0" "b" "1" "c" "2" "d" "3" "e" "4" -}}
+{{- $L := slice -}}{{- $H := slice -}}
+{{- range where (where site.RegularPages "Params.layout" "fiche") "Params.categorie" "Lieux" -}}
+{{- $b := "" -}}{{- with .File -}}{{- $b = .ContentBaseName -}}{{- end -}}
+{{- $y := "" -}}
+{{- range .Params.documents -}}{{- range findRESubmatch `^(?:[a-z]+-(4[0-4])-|anx-([a-e])-)` . 1 -}}{{- $k := index $AN (cond (ne (index . 1) "") (index . 1) (index . 2)) -}}{{- if and $k (not (in $y $k)) -}}{{- $y = printf "%s%s" $y $k -}}{{- end -}}{{- end -}}{{- end -}}
+{{- $u := strings.TrimPrefix "/" .RelPermalink -}}{{- $t := .Title -}}{{- $n := default 0 .Params.mentions -}}{{- $p := default "" .Params.precision -}}
+{{- with index $C $b -}}
+{{- $L = $L | append (dict "u" $u "t" $t "n" $n "p" $p "y" $y "la" (index . 0) "lo" (index . 1) "g" (index . 2) "s" (index . 3)) -}}
+{{- else -}}
+{{- $H = $H | append (dict "u" $u "t" $t "n" $n "p" $p) -}}
+{{- end -}}
+{{- end -}}
+<div class="carte-outils" data-pagefind-ignore><span>Région :</span><span id="carte-regions"></span></div>
+<div class="carte-outils" data-pagefind-ignore><span>Année :</span><span id="carte-annees"></span>
+ <label><input type="checkbox" id="carte-zones" checked> Pays, régions, mers et fleuves</label>
+ <label><input type="checkbox" id="carte-auto" checked> Positions automatiques</label></div>
+<div class="carte-lieux" data-pagefind-ignore>
+ <div class="carte-cadre" id="carte-cadre">
+  <svg id="carte-svg" role="img" aria-label="Carte des lieux cités dans la chronologie FTL"></svg>
+  <div class="carte-zoom"><button type="button" data-z="1.6" aria-label="Zoomer">+</button><button type="button" data-z="0.625" aria-label="Dézoomer">−</button></div>
+  <div class="carte-info" id="carte-info" hidden></div>
+ </div>
+ <div class="carte-liste"><input type="search" id="carte-cherche" placeholder="Chercher un lieu…" aria-label="Chercher un lieu"><p id="carte-compte"></p><ol id="carte-ol"></ol></div>
+</div>
+<p class="note-liste" data-pagefind-ignore>Fond de carte : Natural Earth (domaine public) ; côtes, lacs et grands fleuves actuels, sans frontières. Positions : saisies à la main ou relues pour les lieux cités vingt fois et plus, ailleurs tirées automatiquement de GeoNames (licence CC BY 4.0, geonames.org) d'après le nom et le pays indiqués dans la fiche ; ces positions automatiques restent à vérifier. Un pays, une région, une mer ou un fleuve est figuré par un cercle bleu placé en son centre.</p>
+<details class="carte-hors-carte" data-pagefind-ignore><summary>Lieux sans position sur la carte ({{ len $H }})</summary>
+<p class="note-liste">Lieux que le relevé n'a pas su placer : régions, reliefs et cours d'eau peu cités, lieux introuvables ou ambigus. Leur fiche reste accessible.</p>
+<ul class="carte-hors">{{ range sort $H "n" "desc" }}<li><a href="/{{ .u }}">{{ .t }}</a> <small>({{ .n }})</small></li>{{ end }}</ul></details>
+<script type="application/json" id="carte-donnees">{{ $L | jsonify | safeJS }}</script>
+<script src="{{ "carte.js" | relURL }}?v={{ now.Unix }}" defer></script>
+{{ end }}
